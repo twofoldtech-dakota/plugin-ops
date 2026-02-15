@@ -1,0 +1,16 @@
+{
+  "name": "twofoldtech-dakota-plugin-ops",
+  "owner": {
+    "name": "twofoldtech-dakota"
+  },
+  "plugins": [
+    {
+      "name": "plugin-ops",
+      "description": "Maintenance and operations engine for Claude Code plugins — health scanning, dependency management, versioning, issue tracking, and runbooks.",
+      "source": {
+        "source": "github",
+        "repo": "twofoldtech-dakota/plugin-ops"
+      }
+    }
+  ]
+}

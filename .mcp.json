@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "ops": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/dist/index.js"],
+      "env": {
+        "OPS_DATA_DIR": "${CLAUDE_PROJECT_DIR}/.ops",
+        "PROJECT_DIR": "${CLAUDE_PROJECT_DIR}"
+      }
+    }
+  }
+}
