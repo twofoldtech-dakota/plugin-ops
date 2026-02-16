@@ -1,6 +1,6 @@
 {
   "name": "plugin-ops",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Maintenance and operations engine for Claude Code plugins — health scanning, dependency management, versioning, issue tracking, and runbooks.",
   "type": "module",
   "main": "dist/index.js",

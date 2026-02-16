@@ -20,22 +20,20 @@ After you **build** a plugin (plugin-architect) and **launch** it (plugin-gtm), 
 | `/ops-release` | Version bump + changelog + git tagging |
 | `/ops-runbook` | Step-by-step guided operational procedures |
 
-**27 MCP tools** for persistent data across sessions. **3 MCP resources** for quick access to projects, health, and issues.
+**32 MCP tools** for persistent data across sessions. **3 MCP resources** for quick access to projects, health, and issues.
 
 ## Install
 
-```bash
-claude plugin add twofoldtech-dakota/plugin-ops
+**Step 1** — Add the marketplace (once per machine):
+
+```
+/plugin marketplace add twofoldtech-dakota/plugin-ops
 ```
 
-Or install locally:
+**Step 2** — Install the plugin:
 
-```bash
-git clone https://github.com/twofoldtech-dakota/plugin-ops.git
-cd plugin-ops
-npm install
-npm run build
-claude plugin add ./plugin-ops
+```
+/plugin install plugin-ops@twofoldtech-dakota-plugin-ops
 ```
 
 ## Quick Start
@@ -83,6 +81,12 @@ plugin-ops is part of a compound startup toolkit:
 
 ### Releases (5)
 `ops_release_create` · `ops_release_get` · `ops_release_list` · `ops_release_latest` · `ops_release_update`
+
+### Export (3)
+`ops_health_export` · `ops_health_diff` · `ops_release_export`
+
+### Templates (2)
+`ops_template_list` · `ops_template_get`
 
 ### Runbooks (5)
 `ops_runbook_start` · `ops_runbook_get` · `ops_runbook_list` · `ops_runbook_step` · `ops_runbook_complete`
