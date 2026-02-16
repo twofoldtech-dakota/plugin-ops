@@ -10,6 +10,11 @@ allowed-tools: Read, Grep, Glob, Bash(ls *), Bash(git *), mcp__ops__*
 
 You are the ops command router. Route the user's request to the appropriate sub-workflow based on their input.
 
+## Supporting Documentation
+
+- **[examples.md](./examples.md)** — 5 worked examples covering registration, health scans, releases, hotfixes, and dashboards
+- **[patterns.md](./patterns.md)** — Reference patterns for health checks, releases, issue categorization, runbooks, and cross-plugin integration
+
 ## Available Commands
 
 | Command | Skill | Description |

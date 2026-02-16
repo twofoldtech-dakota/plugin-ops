@@ -36,6 +36,9 @@ import {
   getLatestRelease,
   updateRelease,
 } from "./release/crud.js";
+import { exportHealthReport, exportHealthDiff } from "./health/export.js";
+import { exportChangelog } from "./release/export.js";
+import { listTemplates, getTemplate } from "./templates/index.js";
 import {
   startRunbook,
   getRunbookExecution,
@@ -46,7 +49,7 @@ import {
 
 const server = new McpServer({
   name: "ops",
-  version: "0.1.0",
+  version: "0.2.0",
 });
 
 // ── Project Tools (6) ───────────────────────────────────────────
@@ -473,6 +476,88 @@ server.tool(
     const execution = completeRunbook(id, status, error);
     if (!execution) return { content: [{ type: "text", text: "Execution not found" }], isError: true };
     return { content: [{ type: "text", text: JSON.stringify(execution, null, 2) }] };
+  },
+);
+
+// ── Export Tools (3) ────────────────────────────────────────
+
+server.tool(
+  "ops_health_export",
+  "Export a health report to a markdown file on disk",
+  {
+    id: z.string().describe("Health check ID to export"),
+    target_path: z.string().optional().describe("Relative file path (defaults to reports/health-<date>.md)"),
+    overwrite: z.boolean().optional().describe("Overwrite existing file"),
+  },
+  async ({ id, target_path, overwrite }) => {
+    try {
+      const result = exportHealthReport(id, { targetPath: target_path, overwrite });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    } catch (err) {
+      log.error("ops_health_export failed", err);
+      return { content: [{ type: "text", text: `Error: ${err}` }], isError: true };
+    }
+  },
+);
+
+server.tool(
+  "ops_health_diff",
+  "Compare a health check's DB state vs its exported file on disk",
+  {
+    id: z.string().describe("Health check ID to diff"),
+  },
+  async ({ id }) => {
+    try {
+      const result = exportHealthDiff(id);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    } catch (err) {
+      log.error("ops_health_diff failed", err);
+      return { content: [{ type: "text", text: `Error: ${err}` }], isError: true };
+    }
+  },
+);
+
+server.tool(
+  "ops_release_export",
+  "Export all releases for a project to a CHANGELOG.md file",
+  {
+    project_id: z.string().describe("Project ID"),
+    target_path: z.string().optional().describe("Relative file path (defaults to CHANGELOG.md)"),
+    overwrite: z.boolean().optional().describe("Overwrite existing file"),
+  },
+  async ({ project_id, target_path, overwrite }) => {
+    try {
+      const result = exportChangelog(project_id, { targetPath: target_path, overwrite });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    } catch (err) {
+      log.error("ops_release_export failed", err);
+      return { content: [{ type: "text", text: `Error: ${err}` }], isError: true };
+    }
+  },
+);
+
+// ── Template Tools (2) ──────────────────────────────────────
+
+server.tool(
+  "ops_template_list",
+  "List available health check templates by plugin architecture type",
+  {},
+  async () => {
+    const templates = listTemplates();
+    return { content: [{ type: "text", text: JSON.stringify(templates, null, 2) }] };
+  },
+);
+
+server.tool(
+  "ops_template_get",
+  "Get a template definition by category (skill-only, mcp-plugin, full-plugin)",
+  {
+    category: z.string().describe("Template category"),
+  },
+  async ({ category }) => {
+    const template = getTemplate(category);
+    if (!template) return { content: [{ type: "text", text: "Template not found" }], isError: true };
+    return { content: [{ type: "text", text: JSON.stringify(template, null, 2) }] };
   },
 );
 

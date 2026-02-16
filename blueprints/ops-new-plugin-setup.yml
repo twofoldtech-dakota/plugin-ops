@@ -1,0 +1,91 @@
+# Ops New Plugin Setup Blueprint
+# Compatible with plugin-hive swarm orchestration
+# Status: DRAFT — pending plugin-hive blueprint schema finalization
+
+id: ops-new-plugin-setup
+name: New Plugin Setup
+description: >
+  Onboard a new plugin project: detect components, register it,
+  run initial health scan, create issues for gaps, and generate a report.
+version: 0.1.0
+status: draft
+
+inputs:
+  - name: project_path
+    description: Absolute path to the plugin project to onboard
+    required: true
+  - name: project_name
+    description: Name for the plugin project
+    required: true
+
+flights:
+  - id: detect
+    name: Detect Components
+    description: >
+      Scan the project directory to detect what components exist:
+      skills, MCP server, hooks, agents, build config, etc.
+    prompt: |
+      Detect components in the project at {{project_path}}.
+      1. Call ops_project_detect with the project path
+      2. Identify: skills, MCP server, hooks, agents, package.json, tsconfig
+      3. Determine the project type: skill-only, mcp, or full
+    outputs:
+      - PROJECT_TYPE
+      - HAS_SKILLS
+      - HAS_MCP
+      - HAS_HOOKS
+      - HAS_AGENTS
+
+  - id: register
+    name: Register Project
+    description: >
+      Register the detected project in the ops database for tracking.
+    depends_on: [detect]
+    prompt: |
+      Register project {{project_name}} at {{project_path}}.
+      1. Call ops_project_create with detected components
+      2. Set type to {{PROJECT_TYPE}}
+      3. Read version from package.json if it exists
+    outputs:
+      - PROJECT_ID
+
+  - id: scan
+    name: Initial Health Scan
+    description: >
+      Run the first health check against the appropriate template
+      for the detected project type.
+    depends_on: [register]
+    prompt: |
+      Run initial health scan for project {{PROJECT_ID}}.
+      1. Call ops_template_get with category {{PROJECT_TYPE}} to get the check list
+      2. Evaluate each check against the project
+      3. Record results with ops_health_create
+      4. Export the report with ops_health_export
+    outputs:
+      - HEALTH_CHECK_ID
+      - HEALTH_SCORE
+
+  - id: issues
+    name: Create Setup Issues
+    description: >
+      Create issues for any gaps found during the initial scan.
+    depends_on: [scan]
+    prompt: |
+      Triage initial scan for project {{PROJECT_ID}}.
+      1. Review the health check results from {{HEALTH_CHECK_ID}}
+      2. Create issues for failing or warning checks with ops_issue_create
+      3. Categorize as structure, quality, or dependency issues
+    outputs:
+      - ISSUE_COUNT
+
+  - id: report
+    name: Onboarding Report
+    description: >
+      Summarize the onboarding results and recommend next steps.
+    depends_on: [issues]
+    prompt: |
+      Generate onboarding report for {{project_name}} ({{PROJECT_ID}}).
+      1. Summarize: project type, components detected, health score
+      2. List open issues by priority
+      3. Recommend next steps (fix critical issues, run /ops-health, schedule maintenance)
+      4. Suggest the appropriate maintenance blueprint (ops-full-maintenance)

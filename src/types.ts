@@ -29,6 +29,8 @@ export interface HealthCheckRecord {
   score: number; // 0-100
   checks: string; // JSON array of {name, status, message, details}
   summary: string;
+  published_at: string | null;
+  file_path: string | null;
   created_at: string;
 }
 
@@ -73,6 +75,8 @@ export interface ReleaseRecord {
   files_bumped: string; // JSON array of file paths
   git_tag: string | null;
   commit_sha: string | null;
+  published_at: string | null;
+  file_path: string | null;
   created_at: string;
 }
 

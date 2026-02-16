@@ -22,6 +22,7 @@ export function getDb(): DatabaseSync {
   db.exec("PRAGMA journal_mode=WAL");
   db.exec("PRAGMA foreign_keys=ON");
   migrate(db);
+  migrateV0_2_0(db);
   log.info("Database connected", { path });
   return db;
 }
@@ -100,6 +101,26 @@ function migrate(db: DatabaseSync): void {
     CREATE INDEX IF NOT EXISTS idx_releases_project ON releases(project_id);
     CREATE INDEX IF NOT EXISTS idx_runbook_executions_project ON runbook_executions(project_id);
   `);
+}
+
+function migrateV0_2_0(db: DatabaseSync): void {
+  const healthCols = db.prepare("PRAGMA table_info(health_checks)").all() as Array<{ name: string }>;
+  const healthNames = new Set(healthCols.map((c) => c.name));
+  if (!healthNames.has("published_at")) {
+    db.exec("ALTER TABLE health_checks ADD COLUMN published_at TEXT");
+  }
+  if (!healthNames.has("file_path")) {
+    db.exec("ALTER TABLE health_checks ADD COLUMN file_path TEXT");
+  }
+
+  const releaseCols = db.prepare("PRAGMA table_info(releases)").all() as Array<{ name: string }>;
+  const releaseNames = new Set(releaseCols.map((c) => c.name));
+  if (!releaseNames.has("published_at")) {
+    db.exec("ALTER TABLE releases ADD COLUMN published_at TEXT");
+  }
+  if (!releaseNames.has("file_path")) {
+    db.exec("ALTER TABLE releases ADD COLUMN file_path TEXT");
+  }
 }
 
 export function closeDb(): void {

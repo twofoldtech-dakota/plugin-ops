@@ -1,0 +1,74 @@
+# Ops Dependency Audit Blueprint
+# Compatible with plugin-hive swarm orchestration
+# Status: DRAFT — pending plugin-hive blueprint schema finalization
+
+id: ops-dependency-audit
+name: Dependency Audit
+description: >
+  Audit project dependencies: identify outdated or vulnerable packages,
+  update them, verify the build, and record results.
+version: 0.1.0
+status: draft
+
+inputs:
+  - name: project_id
+    description: The registered project ID to audit
+    required: true
+
+flights:
+  - id: audit
+    name: Dependency Audit
+    description: >
+      Run npm audit and npm outdated to identify dependency issues.
+    prompt: |
+      Audit dependencies for project {{project_id}}.
+      1. Call ops_project_get to get the project path
+      2. Run npm audit and npm outdated in the project directory
+      3. Categorize findings: critical vulnerabilities, major outdated, minor outdated
+    outputs:
+      - VULNERABILITIES
+      - OUTDATED_COUNT
+      - CRITICAL_COUNT
+
+  - id: identify
+    name: Identify Updates
+    description: >
+      Determine which dependencies should be updated and in what order.
+      Create issues for each update needed.
+    depends_on: [audit]
+    prompt: |
+      Plan dependency updates for project {{project_id}}.
+      1. Prioritize: critical vulnerabilities first, then major outdated
+      2. Create an issue for each update with ops_issue_create (category: dependency)
+      3. Note any updates that may have breaking changes
+    outputs:
+      - UPDATE_PLAN
+      - ISSUE_IDS
+
+  - id: update
+    name: Apply Updates
+    description: >
+      Apply the planned dependency updates, one at a time, testing between each.
+    depends_on: [identify]
+    prompt: |
+      Apply dependency updates for project {{project_id}}.
+      1. For each planned update, run npm install <pkg>@latest
+      2. After each update, run npm run typecheck and npm run build
+      3. If an update breaks the build, revert it and note the issue
+      4. Close resolved issues with ops_issue_close
+
+  - id: verify
+    name: Verify Build
+    description: >
+      Run full build and health check to confirm all updates are stable.
+    depends_on: [update]
+    prompt: |
+      Verify project {{project_id}} after dependency updates.
+      1. Run npm run typecheck && npm run build
+      2. Run a health scan with ops_health_create
+      3. Compare to the previous health score
+      4. Export the updated report with ops_health_export
+      5. Summarize: packages updated, vulnerabilities resolved, remaining issues
+    outputs:
+      - FINAL_SCORE
+      - PACKAGES_UPDATED

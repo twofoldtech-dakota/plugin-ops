@@ -1,0 +1,79 @@
+# Ops Full Maintenance Blueprint
+# Compatible with plugin-hive swarm orchestration
+# Status: DRAFT — pending plugin-hive blueprint schema finalization
+
+id: ops-full-maintenance
+name: Full Maintenance Cycle
+description: >
+  End-to-end maintenance workflow: run a health scan, triage issues,
+  apply fixes, and verify the project is healthy again.
+version: 0.1.0
+status: draft
+
+inputs:
+  - name: project_id
+    description: The registered project ID to maintain
+    required: true
+
+flights:
+  - id: health-scan
+    name: Health Scan
+    description: >
+      Run a comprehensive health check on the project. Detect components,
+      evaluate structure, dependencies, and quality, then record the results.
+    prompt: |
+      Run a full health scan for project {{project_id}}.
+      1. Call ops_project_get to load the project details
+      2. Call ops_project_detect to scan current state
+      3. Evaluate all health checks and record with ops_health_create
+      4. Export the report with ops_health_export
+    outputs:
+      - HEALTH_CHECK_ID
+      - HEALTH_SCORE
+      - HEALTH_STATUS
+
+  - id: triage
+    name: Issue Triage
+    description: >
+      Review failing health checks and create prioritized issues for each.
+      Categorize by type and assign severity.
+    depends_on: [health-scan]
+    prompt: |
+      Triage the health scan results for project {{project_id}}.
+      Health check ID: {{HEALTH_CHECK_ID}}
+      Score: {{HEALTH_SCORE}}
+      1. Get the health check details with ops_health_get
+      2. For each failing or warning check, create an issue with ops_issue_create
+      3. Prioritize critical structural issues first, then quality, then deps
+    outputs:
+      - ISSUE_COUNT
+      - CRITICAL_ISSUES
+
+  - id: fix
+    name: Apply Fixes
+    description: >
+      Work through the triaged issues and apply fixes. Update issue status
+      as fixes are applied.
+    depends_on: [triage]
+    prompt: |
+      Fix the issues found for project {{project_id}}.
+      1. Call ops_issue_list to get open issues sorted by priority
+      2. For each issue, apply the fix
+      3. Update each issue with ops_issue_update (status: in_progress, then closed)
+      4. Add resolution notes to each closed issue
+
+  - id: verify
+    name: Verify Fixes
+    description: >
+      Run another health scan to verify all fixes were applied correctly
+      and the project health has improved.
+    depends_on: [fix]
+    prompt: |
+      Verify fixes for project {{project_id}}.
+      1. Run a fresh health scan with ops_health_create
+      2. Compare the new score to {{HEALTH_SCORE}}
+      3. Export the updated report with ops_health_export
+      4. Summarize improvements and any remaining issues
+    outputs:
+      - FINAL_SCORE
+      - IMPROVEMENT

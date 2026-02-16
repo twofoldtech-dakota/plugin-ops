@@ -1,0 +1,89 @@
+# Ops Release Cycle Blueprint
+# Compatible with plugin-hive swarm orchestration
+# Status: DRAFT — pending plugin-hive blueprint schema finalization
+
+id: ops-release-cycle
+name: Release Cycle
+description: >
+  Full release workflow: health gate, version bump, changelog generation,
+  git tagging, and export to CHANGELOG.md.
+version: 0.1.0
+status: draft
+
+inputs:
+  - name: project_id
+    description: The registered project ID to release
+    required: true
+  - name: release_type
+    description: "Release type: major, minor, or patch"
+    required: true
+
+flights:
+  - id: health-gate
+    name: Health Gate
+    description: >
+      Verify the project passes health checks before allowing a release.
+      Block release if critical issues exist.
+    prompt: |
+      Check release readiness for project {{project_id}}.
+      1. Call ops_health_latest to get the most recent health check
+      2. If no health check exists, run one with ops_health_create
+      3. Call ops_issue_list with status=open to check for blockers
+      4. If score < 70 or critical issues exist, STOP and report blockers
+    outputs:
+      - HEALTH_SCORE
+      - RELEASE_READY
+
+  - id: bump
+    name: Version Bump
+    description: >
+      Bump the version in package.json and any other version-bearing files.
+      Record the release in the database.
+    depends_on: [health-gate]
+    prompt: |
+      Bump version for project {{project_id}} ({{release_type}} release).
+      1. Read current version from package.json
+      2. Calculate new version based on {{release_type}}
+      3. Update package.json version field
+      4. Record the release with ops_release_create
+    outputs:
+      - NEW_VERSION
+      - RELEASE_ID
+
+  - id: changelog
+    name: Changelog Generation
+    description: >
+      Generate a changelog entry from git history and issue resolutions
+      since the last release.
+    depends_on: [bump]
+    prompt: |
+      Generate changelog for {{NEW_VERSION}} of project {{project_id}}.
+      1. Get the previous release with ops_release_latest
+      2. Review git log since the last release tag
+      3. Review recently closed issues with ops_issue_list (status=closed)
+      4. Update the release record with the changelog via ops_release_update
+
+  - id: tag
+    name: Git Tag
+    description: >
+      Create a git tag for the release and update the release record
+      with the tag and commit SHA.
+    depends_on: [changelog]
+    prompt: |
+      Tag the release for project {{project_id}}.
+      1. Create git tag v{{NEW_VERSION}}
+      2. Get the commit SHA from git
+      3. Update the release with ops_release_update (git_tag, commit_sha)
+
+  - id: export
+    name: Export Changelog
+    description: >
+      Export all releases to CHANGELOG.md on disk.
+    depends_on: [tag]
+    prompt: |
+      Export changelog for project {{project_id}}.
+      1. Call ops_release_export with the project_id
+      2. Confirm the CHANGELOG.md was written
+      3. Summarize the release: version, tag, files changed
+    outputs:
+      - CHANGELOG_PATH
